@@ -1,4 +1,3 @@
-use pretty_env_logger;
 #[macro_use]
 extern crate log;
 
@@ -12,8 +11,8 @@ pub use serenity::model::application::{
     interaction::{Interaction, InteractionResponseType},
 };
 use serenity::model::gateway::Ready;
-use serenity::{async_trait, model::prelude::Member};
 use serenity::prelude::*;
+use serenity::{async_trait, model::prelude::Member};
 
 mod commands;
 mod events;
@@ -78,17 +77,17 @@ impl EventHandler for Handler {
         })
         .await;
 
-        if let Err(e) = commands {
-            error!("Failed to push slash commands");
-            trace!("{:#?}", e);
-        } else {
-            debug!(
-                "Pushed {} slash commands!",
-                commands.as_ref().unwrap().len()
-            );
-            let commands = commands.unwrap();
-            for i in 0..commands.len() {
-                debug!("Registered command: {}", commands[i].name.as_str());
+        match commands {
+            Ok(command) => {
+                debug!("Pushed {} slash commands!", command.len());
+
+                for i in command.iter() {
+                    debug!("Registered command: {}", i.name.as_str());
+                }
+            }
+            Err(e) => {
+                error!("Failed to push slash commands");
+                trace!("{:#?}", e);
             }
         }
     }
