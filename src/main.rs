@@ -1,23 +1,60 @@
-extern crate pretty_env_logger;
+use pretty_env_logger;
 #[macro_use]
 extern crate log;
 
+use error_stack::{Context as ErrorContext, IntoReport, Result, ResultExt};
+
+use crate::misc::get_env;
 use dotenv::dotenv;
-use std::env;
 
 use serenity::async_trait;
-pub use serenity::model::application::interaction::{Interaction, InteractionResponseType};
+pub use serenity::model::application::{
+    command::Command,
+    interaction::{Interaction, InteractionResponseType},
+};
 use serenity::model::gateway::Ready;
-use serenity::model::prelude::GuildId;
+// use serenity::model::prelude::GuildId;
 use serenity::prelude::*;
 
 mod commands;
-mod link;
+mod http;
+pub mod misc;
+
+#[derive(Debug)]
+struct DiscordBotBuildError;
+
+impl std::fmt::Display for DiscordBotBuildError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fmt.write_str("Bot Error: An error occured while building the bot")
+    }
+}
+
+impl ErrorContext for DiscordBotBuildError {}
+#[derive(Debug)]
+struct DiscordBotRuntimeError;
+
+impl std::fmt::Display for DiscordBotRuntimeError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fmt.write_str("Bot Error: An error occured while running the bot")
+    }
+}
+
+impl ErrorContext for DiscordBotRuntimeError {}
 
 pub struct Handler {
-    pub api_http: reqwest::Client,
-    pub gms_http: reqwest::Client
+    pub http: crate::http::HttpClient,
 }
+
+#[derive(Debug)]
+pub struct CommandRuntimeError;
+
+impl std::fmt::Display for CommandRuntimeError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fmt.write_str("Bot Error: An error occured whilst running the gmodstore command")
+    }
+}
+
+impl ErrorContext for CommandRuntimeError {}
 
 #[async_trait]
 impl EventHandler for Handler {
@@ -28,32 +65,47 @@ impl EventHandler for Handler {
             ready.user.name, ready.user.discriminator
         );
 
-        let guild_id = GuildId(
-            env::var("DISCORD_GUILD")
-                .expect("Expected DISCORD_GUILD in environment")
-                .parse()
-                .expect("Failed to parse: DISCORD_GUILD; is it valid?"),
-        );
+        // let guild_id = GuildId(
+        //     get_env("DISCORD_GUILD")
+        //         .expect("Expected DISCORD_GUILD in environment")
+        //         .parse()
+        //         .expect("Failed to parse: DISCORD_GUILD"),
+        // );
 
         debug!("Attempting to push slash commands...");
-        let commands = guild_id
-            .set_application_commands(&ctx.http, |commands| {
-                commands
-                    // .create_application_command(|command| commands::coupon::register(command))
-                    // .create_application_command(|command| commands::forceroles::register(command))
-                    .create_application_command(|command| commands::gmodstore::register(command))
-                    // .create_application_command(|command| commands::purchases::register(command))
-                    // .create_application_command(|command| commands::roles::register(command))
-                    // .create_application_command(|command| commands::steam::register(command))
-                    // .create_application_command(|command| commands::unlink::register(command))
-            })
-            .await;
+        // let commands = guild_id
+        //     .set_application_commands(&ctx.http, |commands| {
+        //         commands
+        //             .create_application_command(|command| commands::coupon::register(command))
+        //             .create_application_command(|command| commands::forceroles::register(command))
+        //             .create_application_command(|command| commands::gmodstore::register(command))
+        //             .create_application_command(|command| commands::purchases::register(command))
+        //             .create_application_command(|command| commands::roles::register(command))
+        //             .create_application_command(|command| commands::steam::register(command))
+        //             .create_application_command(|command| commands::unlink::register(command))
+        //     })
+        //     .await;
+
+        let commands = Command::set_global_application_commands(&ctx.http, |commands| {
+            commands
+                // .create_application_command(|command| commands::coupon::register(command))
+                .create_application_command(|command| commands::forceroles::register(command))
+                .create_application_command(|command| commands::gmodstore::register(command))
+                .create_application_command(|command| commands::purchases::register(command))
+                .create_application_command(|command| commands::roles::register(command))
+                .create_application_command(|command| commands::steam::register(command))
+                .create_application_command(|command| commands::unlink::register(command))
+        })
+        .await;
 
         if let Err(e) = commands {
             error!("Failed to push slash commands");
             trace!("{:#?}", e);
         } else {
-            debug!("Successfully pushed slash commands!");
+            debug!(
+                "Pushed {} slash commands!",
+                commands.as_ref().unwrap().len()
+            );
             let commands = commands.unwrap();
             for i in 0..commands.len() {
                 debug!("Registered command: {}", commands[i].name.as_str());
@@ -62,98 +114,91 @@ impl EventHandler for Handler {
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        if let Interaction::ApplicationCommand(command) = interaction {
+        if let Interaction::ApplicationCommand(mut command) = interaction {
             debug!(
-                "Received command interaction: {:?}",
+                "Received command interaction: {}",
                 command.data.name.as_str()
             );
 
-            let operation = match command.data.name.as_str() {
-                // "coupon" => commands::coupon::run(Self, command, ctx),
-                // "force-roles" => commands::forceroles::run(Self, command, ctx),
-                "gmodstore" => commands::gmodstore::run(self, command, ctx),
-                // "purchases" => commands::purchases::run(Self, command, ctx),
-                // "roles" => commands::roles::run(Self, command, ctx),
-                // "steam" => commands::steam::run(Self, command, ctx),
-                // "unlink" => commands::unlink::run(Self, command, ctx),
+            if let Err(e) = match command.data.name.as_str() {
+                // "coupon" => commands::coupon::run(self, command, ctx)
+                //     .await
+                //     .change_context(CommandRuntimeError),
+                "force-roles" => commands::forceroles::run(self, command, ctx)
+                    .await
+                    .change_context(CommandRuntimeError),
+                "gmodstore" => commands::gmodstore::run(self, command, ctx)
+                    .await
+                    .change_context(CommandRuntimeError),
+                "purchases" => commands::purchases::run(self, command, ctx)
+                    .await
+                    .change_context(CommandRuntimeError),
+                "roles" => commands::roles::run(self, &mut command, ctx)
+                    .await
+                    .change_context(CommandRuntimeError),
+                "steam" => commands::steam::run(self, command, ctx)
+                    .await
+                    .change_context(CommandRuntimeError),
+                "unlink" => commands::unlink::run(self, command, ctx)
+                    .await
+                    .change_context(CommandRuntimeError),
                 _ => {
                     error!("Unknown command: {}", command.data.name.as_str());
                     return;
                 }
-            };
-
-            // if let Err(e) = command
-            //     .create_interaction_response(&ctx.http, |response| {
-            //         response
-            //             .kind(InteractionResponseType::ChannelMessageWithSource)
-            //             .interaction_response_data(|message| message.content(content))
-            //     })
-            //     .await
-            // {
-            //     error!("Failed to respond to slash command!");
-            //     trace!("{:#?}", e);
-            // }
-
-            if let Err(e) = operation.await {
-                error!("Failed to run slash command!");
+            } {
+                error!("An error occured whilst running previous command");
                 trace!("{:#?}", e);
             }
         }
     }
 }
 
-#[tokio::main]
-async fn main() {
-    dotenv().ok();
-    pretty_env_logger::try_init_timed_custom_env("LOG_LEVEL").unwrap();
+async fn build() -> Result<(), DiscordBotBuildError> {
+    debug!("Building HTTP client");
+    let http = crate::http::HttpClient::new().change_context(DiscordBotBuildError)?;
 
-    let mut api_headers = reqwest::header::HeaderMap::new();
-    api_headers.insert(
-        reqwest::header::AUTHORIZATION,
-        reqwest::header::HeaderValue::from_str(
-            &format!(
-                "Bearer {}",
-                env::var("API_KEY").expect("Expected API_KEY in environment")
-            )
-            .as_str(),
-        )
-        .unwrap(),
-    );
+    let handler = Handler { http };
 
-    let mut gms_headers = reqwest::header::HeaderMap::new();
-    gms_headers.insert(
-        reqwest::header::AUTHORIZATION,
-        reqwest::header::HeaderValue::from_str(
-            &format!(
-                "Bearer {}",
-                env::var("GMS_PAT").expect("Expected GMS_PAT in environment")
-            )
-            .as_str(),
-        )
-        .unwrap(),
-    );
-
-    let api_http_builder = reqwest::Client::builder()
-        .default_headers(api_headers);
-    let gms_http_builder = reqwest::Client::builder()
-        .default_headers(gms_headers);
-    
-    let handler = Handler {
-        api_http: api_http_builder.build().unwrap(),
-        gms_http: gms_http_builder.build().unwrap()
-    };
-
-    let discord_token = env::var("DISCORD_TOKEN").expect("Expected DISCORD_TOKEN in environment");
+    let discord_token = get_env("DISCORD_TOKEN")
+        .attach_printable("Failed to read discord token")
+        .change_context(DiscordBotBuildError)?;
     let intents = GatewayIntents::non_privileged();
 
+    debug!("Building Discord client");
     let mut client = Client::builder(discord_token, intents)
         .event_handler(handler)
         .await
-        .expect("Error constructing client");
+        .into_report()
+        .attach_printable("Failed to build client")
+        .change_context(DiscordBotBuildError)?;
 
-    debug!("Attempting to connect to Discord...");
-    if let Err(e) = client.start().await {
-        error!("Failed to connect to Discord!");
-        trace!("{:#?}", e);
-    }
+    client
+        .start()
+        .await
+        .into_report()
+        .attach_printable("Failed to start client")
+        .change_context(DiscordBotBuildError)?;
+
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), DiscordBotRuntimeError> {
+    dotenv()
+        .into_report()
+        .attach_printable("Failed to load .env file")
+        .attach_printable(
+            "Ensure .env is present in root directory and you have permission to read & execute it",
+        )
+        .change_context(DiscordBotRuntimeError)?;
+
+    pretty_env_logger::try_init_timed_custom_env("RUST_LOG")
+        .into_report()
+        .attach_printable("Failed to initialize logger")
+        .change_context(DiscordBotRuntimeError)?;
+
+    build().await.change_context(DiscordBotRuntimeError)?;
+
+    Ok(())
 }

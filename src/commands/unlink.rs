@@ -2,61 +2,65 @@ use error_stack::{Context as ErrorContext, IntoReport, Report, Result, ResultExt
 use serenity::{
     builder::CreateApplicationCommand,
     client::Context,
-    model::application::{
-        command::CommandOptionType,
-        interaction::{
-            application_command::{ApplicationCommandInteraction, CommandDataOptionValue},
-            InteractionResponseType,
+    model::{
+        application::{
+            command::CommandOptionType,
+            interaction::{
+                application_command::{ApplicationCommandInteraction, CommandDataOptionValue},
+                InteractionResponseType,
+            },
         },
+        mention::Mention,
+        permissions::Permissions,
     },
 };
-#[derive(Debug)]
-pub struct GmodstoreCommandRuntimeError;
 
-impl std::fmt::Display for GmodstoreCommandRuntimeError {
+#[derive(Debug)]
+pub struct UnlinkCommandRuntimeError;
+
+impl std::fmt::Display for UnlinkCommandRuntimeError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.write_str("Bot Error: An error occured whilst running the gmodstore command")
+        fmt.write_str("Bot Error: An error occured whilst running the unlink command")
     }
 }
 
-impl ErrorContext for GmodstoreCommandRuntimeError {}
+impl ErrorContext for UnlinkCommandRuntimeError {}
 
 pub async fn run(
     handler: &crate::Handler,
     command: ApplicationCommandInteraction,
     ctx: Context,
-) -> Result<(), GmodstoreCommandRuntimeError> {
+) -> Result<(), UnlinkCommandRuntimeError> {
     let target = match command.data.options.get(0) {
         Some(target) => match target.resolved.as_ref() {
             Some(target) => target,
             None => {
-                return Err(Report::new(GmodstoreCommandRuntimeError)
+                return Err(Report::new(UnlinkCommandRuntimeError)
                     .attach_printable("Failed to parse command target as a user"));
             }
         },
         None => {
-            return Err(Report::new(GmodstoreCommandRuntimeError)
+            return Err(Report::new(UnlinkCommandRuntimeError)
                 .attach_printable("Failed to get command target"));
         }
     };
 
     let CommandDataOptionValue::User(user, _member) = target else {
-        return Err(Report::new(GmodstoreCommandRuntimeError)
+        return Err(Report::new(UnlinkCommandRuntimeError)
             .attach_printable("Failed to fetch and validate user from command target"));
     };
 
     let api_response = handler
         .http
         .link_client
-        .get_user_by_discord(user.id.0)
+        .delete_user_by_discord(user.id.0)
         .await
-        .change_context(GmodstoreCommandRuntimeError)?;
+        .change_context(UnlinkCommandRuntimeError)?;
 
     let interaction_reply = match api_response {
-        Some(response) => match response.data.gmod_store_id {
-            Some(gms_id) => format!("https://www.gmodstore.com/users/{}", gms_id),
-            None => "User does not have a regsitered GmodStore account.".to_string(),
-        },
+        Some(_) => {
+            format!("Unlinked {}", Mention::User(user.id))
+        }
         None => "User is not linked.".to_string(),
     };
 
@@ -71,21 +75,22 @@ pub async fn run(
         .await
         .into_report()
         .attach_printable("Failed to send interaction response")
-        .change_context(GmodstoreCommandRuntimeError)?;
+        .change_context(UnlinkCommandRuntimeError)?;
 
     Ok(())
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
-        .name("gmodstore")
-        .description("Retrieve user GmodStore account page.")
+        .name("unlink")
+        .description("Unlink user account")
         .create_option(|option| {
             option
                 .name("user")
-                .description("User to fetch")
+                .description("The user to unlink")
                 .kind(CommandOptionType::User)
                 .required(true)
         })
         .dm_permission(false)
+        .default_member_permissions(Permissions::MODERATE_MEMBERS)
 }

@@ -11,37 +11,37 @@ use serenity::{
     },
 };
 #[derive(Debug)]
-pub struct GmodstoreCommandRuntimeError;
+pub struct SteamCommandRuntimeError;
 
-impl std::fmt::Display for GmodstoreCommandRuntimeError {
+impl std::fmt::Display for SteamCommandRuntimeError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.write_str("Bot Error: An error occured whilst running the gmodstore command")
+        fmt.write_str("Bot Error: An error occured whilst running the steam command")
     }
 }
 
-impl ErrorContext for GmodstoreCommandRuntimeError {}
+impl ErrorContext for SteamCommandRuntimeError {}
 
 pub async fn run(
     handler: &crate::Handler,
     command: ApplicationCommandInteraction,
     ctx: Context,
-) -> Result<(), GmodstoreCommandRuntimeError> {
+) -> Result<(), SteamCommandRuntimeError> {
     let target = match command.data.options.get(0) {
         Some(target) => match target.resolved.as_ref() {
             Some(target) => target,
             None => {
-                return Err(Report::new(GmodstoreCommandRuntimeError)
+                return Err(Report::new(SteamCommandRuntimeError)
                     .attach_printable("Failed to parse command target as a user"));
             }
         },
         None => {
-            return Err(Report::new(GmodstoreCommandRuntimeError)
+            return Err(Report::new(SteamCommandRuntimeError)
                 .attach_printable("Failed to get command target"));
         }
     };
 
     let CommandDataOptionValue::User(user, _member) = target else {
-        return Err(Report::new(GmodstoreCommandRuntimeError)
+        return Err(Report::new(SteamCommandRuntimeError)
             .attach_printable("Failed to fetch and validate user from command target"));
     };
 
@@ -50,13 +50,13 @@ pub async fn run(
         .link_client
         .get_user_by_discord(user.id.0)
         .await
-        .change_context(GmodstoreCommandRuntimeError)?;
+        .change_context(SteamCommandRuntimeError)?;
 
     let interaction_reply = match api_response {
-        Some(response) => match response.data.gmod_store_id {
-            Some(gms_id) => format!("https://www.gmodstore.com/users/{}", gms_id),
-            None => "User does not have a regsitered GmodStore account.".to_string(),
-        },
+        Some(response) => format!(
+            "https://steamcommunity.com/profiles/{}",
+            response.data.steam_id
+        ),
         None => "User is not linked.".to_string(),
     };
 
@@ -71,15 +71,15 @@ pub async fn run(
         .await
         .into_report()
         .attach_printable("Failed to send interaction response")
-        .change_context(GmodstoreCommandRuntimeError)?;
+        .change_context(SteamCommandRuntimeError)?;
 
     Ok(())
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
-        .name("gmodstore")
-        .description("Retrieve user GmodStore account page.")
+        .name("steam")
+        .description("Retrieve user Steam account page.")
         .create_option(|option| {
             option
                 .name("user")
