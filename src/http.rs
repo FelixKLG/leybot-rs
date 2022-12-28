@@ -1,4 +1,4 @@
-use chrono::{Days, Utc, DateTime};
+use chrono::{DateTime, Days, Utc};
 use error_stack::{Context, IntoReport, Report, Result, ResultExt};
 use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
@@ -447,7 +447,8 @@ impl GmodStoreClient {
             let expiry: DateTime<Utc> = DateTime::parse_from_rfc3339(&x.expires_at)
                 .into_report()
                 .attach_printable("An error occured whilst parsing the expiry date")
-                .change_context(GMSClientHTTPError)?.into();
+                .change_context(GMSClientHTTPError)?
+                .into();
 
             if x.bound_user == user_uuid && expiry > Utc::now() {
                 coupons.push(x);

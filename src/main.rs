@@ -13,7 +13,6 @@ pub use serenity::model::application::{
 };
 use serenity::model::gateway::Ready;
 use serenity::{async_trait, model::prelude::Member};
-// use serenity::model::prelude::GuildId;
 use serenity::prelude::*;
 
 mod commands;
