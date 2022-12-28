@@ -53,10 +53,7 @@ pub async fn run(
         .change_context(SteamCommandRuntimeError)?;
 
     let interaction_reply = match api_response {
-        Some(response) => format!(
-            "https://steamcommunity.com/profiles/{}",
-            response.data.steam_id
-        ),
+        Some(response) => format!("https://steamcommunity.com/profiles/{}", response.steam_id),
         None => "User is not linked.".to_string(),
     };
 

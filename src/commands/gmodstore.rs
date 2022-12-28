@@ -53,7 +53,7 @@ pub async fn run(
         .change_context(GmodstoreCommandRuntimeError)?;
 
     let interaction_reply = match api_response {
-        Some(response) => match response.data.gmod_store_id {
+        Some(response) => match response.gmod_store_id {
             Some(gms_id) => format!("https://www.gmodstore.com/users/{}", gms_id),
             None => "User does not have a regsitered GmodStore account.".to_string(),
         },

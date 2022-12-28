@@ -53,7 +53,7 @@ pub async fn run(
     let api_response = handler
         .http
         .link_client
-        .get_purchases_by_discord(user.id.0)
+        .get_user_by_discord(user.id.0)
         .await
         .change_context(PurchasesCommandRuntimeError)?;
 
@@ -71,7 +71,11 @@ pub async fn run(
     message_reply.set_author(author);
 
     match api_response {
-        Some(purchases) => {
+        Some(user) => {
+            let purchases = user
+                .get_purchases()
+                .await
+                .change_context(PurchasesCommandRuntimeError)?;
             let message_contents = format!(
                 r#"{} | Ley's Server-Side AntiCheat
             {} | SwiftAC
@@ -79,12 +83,12 @@ pub async fn run(
             {} | Ley's Screengrabs
             {} | Ley WorkshopDL
             {} | Ley Sexy Errors"#,
-                emoji_parse(purchases.data.lsac),
-                emoji_parse(purchases.data.swift_ac),
-                emoji_parse(purchases.data.hit_reg),
-                emoji_parse(purchases.data.screen_grabs),
-                emoji_parse(purchases.data.workshop_dl),
-                emoji_parse(purchases.data.sexy_errors)
+                emoji_parse(purchases.lsac),
+                emoji_parse(purchases.swift_ac),
+                emoji_parse(purchases.hit_reg),
+                emoji_parse(purchases.screen_grabs),
+                emoji_parse(purchases.workshop_dl),
+                emoji_parse(purchases.sexy_errors)
             );
 
             message_reply.description(message_contents);

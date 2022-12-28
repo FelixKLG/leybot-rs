@@ -53,15 +53,19 @@ pub async fn run(
     let api_response = handler
         .http
         .link_client
-        .delete_user_by_discord(user.id.0)
+        .get_user_by_discord(user.id.0)
         .await
         .change_context(UnlinkCommandRuntimeError)?;
 
     let interaction_reply = match api_response {
-        Some(_) => {
+        Some(api_user) => {
+            api_user
+                .delete()
+                .await
+                .change_context(UnlinkCommandRuntimeError)?;
             format!("Unlinked {}", Mention::User(user.id))
         }
-        None => "User is not linked.".to_string(),
+        None => format!("{} is not linked.", Mention::User(user.id)),
     };
 
     command

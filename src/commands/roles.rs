@@ -34,13 +34,14 @@ pub async fn run(
     let api_response = handler
         .http
         .link_client
-        .get_purchases_by_discord(command.user.id.0)
+        .get_user_by_discord(command.user.id.0)
         .await
         .change_context(RolesCommandRuntimeError)?;
 
     let interaction_response = match api_response {
         Some(response) => {
-            if response.data.lsac {
+            let purchases = response.get_purchases().await.change_context(RolesCommandRuntimeError)?;
+            if purchases.lsac {
                 member
                     .add_role(&ctx.http, 884061162482847765)
                     .await
@@ -49,7 +50,7 @@ pub async fn run(
                     .change_context(RolesCommandRuntimeError)?;
             }
 
-            if response.data.swift_ac {
+            if purchases.swift_ac {
                 member
                     .add_role(&ctx.http, 884060408946757663)
                     .await
@@ -58,7 +59,7 @@ pub async fn run(
                     .change_context(RolesCommandRuntimeError)?;
             }
 
-            if response.data.hit_reg {
+            if purchases.hit_reg {
                 member
                     .add_role(&ctx.http, 884060954294386698)
                     .await
@@ -67,7 +68,7 @@ pub async fn run(
                     .change_context(RolesCommandRuntimeError)?;
             }
 
-            if response.data.screen_grabs {
+            if purchases.screen_grabs {
                 member
                     .add_role(&ctx.http, 889306784551026780)
                     .await
@@ -76,7 +77,7 @@ pub async fn run(
                     .change_context(RolesCommandRuntimeError)?;
             }
 
-            if response.data.screen_grabs {
+            if purchases.screen_grabs {
                 member
                     .add_role(&ctx.http, 884060628128497716)
                     .await
@@ -85,7 +86,7 @@ pub async fn run(
                     .change_context(RolesCommandRuntimeError)?;
             }
 
-            if response.data.sexy_errors {
+            if purchases.sexy_errors {
                 member
                     .add_role(&ctx.http, 884060823205609473)
                     .await

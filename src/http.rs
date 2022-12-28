@@ -207,11 +207,23 @@ pub struct ApiPurchaseObject {
     pub sexy_errors: bool,
 }
 
+pub struct User<'a> {
+    pub uuid: String,
+    pub name: Option<String>,
+    pub steam_id: u64,
+    pub discord_id: Option<u64>,
+    pub gmod_store_id: Option<String>,
+    pub avatar: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+    http: &'a LinkClient,
+}
+
 impl LinkClient {
     pub async fn get_user_by_discord(
         &self,
         discord_id: u64,
-    ) -> Result<Option<ApiUserResponse>, LinkClientHTTPError> {
+    ) -> Result<Option<User>, LinkClientHTTPError> {
         let url = format!("{}/api/users/discord/{}", self.url, discord_id);
 
         let response = self
@@ -227,85 +239,64 @@ impl LinkClient {
             return Ok(None);
         }
 
-        Ok(Some(
-            response
-                .json::<ApiUserResponse>()
-                .await
-                .into_report()
-                .attach_printable("An error occured whilst serializing the API response")
-                .change_context(LinkClientHTTPError)?,
-        ))
-    }
-
-    pub async fn delete_user_by_discord(
-        &self,
-        discord_id: u64,
-    ) -> Result<Option<ApiUserResponse>, LinkClientHTTPError> {
-        let url = format!("{}/api/users/discord/{}", self.url, discord_id);
-
-        let response = self
-            .client
-            .get(url)
-            .send()
-            .await
-            .into_report()
-            .attach_printable("An error occurred while fetching from the API")
-            .change_context(LinkClientHTTPError)?;
-
-        if response.status() == StatusCode::NOT_FOUND {
-            return Ok(None);
-        }
-
-        let user = response
+        let user_api = response
             .json::<ApiUserResponse>()
             .await
             .into_report()
             .attach_printable("An error occured whilst serializing the API response")
+            .change_context(LinkClientHTTPError)?
+            .data;
+
+        Ok(Some(User {
+            uuid: user_api.uuid,
+            name: user_api.name,
+            steam_id: user_api.steam_id,
+            discord_id: user_api.discord_id,
+            gmod_store_id: user_api.gmod_store_id,
+            avatar: user_api.avatar,
+            created_at: user_api.created_at,
+            updated_at: user_api.updated_at,
+            http: self,
+        }))
+    }
+}
+
+impl User<'_> {
+    pub async fn get_purchases(&self) -> Result<ApiPurchaseObject, LinkClientHTTPError> {
+        let url = format!("{}/api/users/{}/purchases", self.http.url, self.uuid);
+
+        let response = self
+            .http
+            .client
+            .get(url)
+            .send()
+            .await
+            .into_report()
+            .attach_printable("An error occurred while fetching from the API")
             .change_context(LinkClientHTTPError)?;
 
-        let user_url = format!("{}/api/users/{}", self.url, user.data.uuid);
+        Ok(response
+            .json::<ApiPurchasesResponse>()
+            .await
+            .into_report()
+            .attach_printable("An error occured whilst serializing the API response")
+            .change_context(LinkClientHTTPError)?
+            .data)
+    }
 
-        self.client
-            .delete(user_url)
+    pub async fn delete(&self) -> Result<(), LinkClientHTTPError> {
+        let url = format!("{}/api/users/{}", self.http.url, self.uuid);
+
+        self.http
+            .client
+            .delete(url)
             .send()
             .await
             .into_report()
             .attach_printable("Failed to send delete request to API")
             .change_context(LinkClientHTTPError)?;
 
-        Ok(Some(user))
-    }
-
-    pub async fn get_purchases_by_discord(
-        &self,
-        discord_id: u64,
-    ) -> Result<Option<ApiPurchasesResponse>, LinkClientHTTPError> {
-        let user = self.get_user_by_discord(discord_id).await?;
-
-        let url = match user {
-            None => return Ok(None),
-            Some(user) => {
-                format!("{}/api/users/{}/purchases", self.url, user.data.uuid)
-            }
-        };
-
-        let response = self
-            .client
-            .get(url)
-            .send()
-            .await
-            .into_report()
-            .attach_printable("An error occurred while fetching from the API")
-            .change_context(LinkClientHTTPError)?;
-
-        Ok(Some(
-            response
-                .json::<ApiPurchasesResponse>()
-                .await
-                .into_report()
-                .attach_printable("An error occured whilst serializing the API response")
-                .change_context(LinkClientHTTPError)?,
-        ))
+        Ok(())
     }
 }
 
@@ -390,7 +381,7 @@ impl CouponBuilder {
             return Err(Report::new(CouponBuilderError)
                 .attach_printable("'code' argument must be less than or equal to 64 characters"));
         }
-        if code.len() == 0 {
+        if code.is_empty() {
             return Err(Report::new(CouponBuilderError)
                 .attach_printable("'code' argument must be greater than 0 characters"));
         }
@@ -455,7 +446,7 @@ impl GmodStoreClient {
             }
         }
 
-        if coupons.len() == 0 {
+        if coupons.is_empty() {
             return Ok(None);
         }
 
@@ -479,11 +470,13 @@ impl GmodStoreClient {
             .attach_printable("An error occurred while fetching from the API")
             .change_context(GMSClientHTTPError)?;
 
-        Ok(response
+        let return_value = response
             .json::<GMSCouponCreateResponse>()
             .await
             .into_report()
             .attach_printable("An error occured whilst derializing the API response")
-            .change_context(GMSClientHTTPError)?)
+            .change_context(GMSClientHTTPError)?;
+
+        Ok(return_value)
     }
 }
