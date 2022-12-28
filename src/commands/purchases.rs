@@ -63,7 +63,10 @@ pub async fn run(
 
     let mut author = CreateEmbedAuthor::default();
     author.name(format!("{}#{}", user.name, user.discriminator));
-    author.icon_url(user.avatar_url().unwrap_or(user.default_avatar_url()));
+    author.icon_url(
+        user.avatar_url()
+            .unwrap_or_else(|| user.default_avatar_url()),
+    );
 
     message_reply.set_author(author);
 
