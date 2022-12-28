@@ -7,18 +7,19 @@ use error_stack::{Context as ErrorContext, IntoReport, Result, ResultExt};
 use crate::misc::get_env;
 use dotenv::dotenv;
 
-use serenity::async_trait;
 pub use serenity::model::application::{
     command::Command,
     interaction::{Interaction, InteractionResponseType},
 };
 use serenity::model::gateway::Ready;
+use serenity::{async_trait, model::prelude::Member};
 // use serenity::model::prelude::GuildId;
 use serenity::prelude::*;
 
 mod commands;
+mod events;
 mod http;
-pub mod misc;
+mod misc;
 
 #[derive(Debug)]
 struct DiscordBotBuildError;
@@ -65,27 +66,7 @@ impl EventHandler for Handler {
             ready.user.name, ready.user.discriminator
         );
 
-        // let guild_id = GuildId(
-        //     get_env("DISCORD_GUILD")
-        //         .expect("Expected DISCORD_GUILD in environment")
-        //         .parse()
-        //         .expect("Failed to parse: DISCORD_GUILD"),
-        // );
-
         debug!("Attempting to push slash commands...");
-        // let commands = guild_id
-        //     .set_application_commands(&ctx.http, |commands| {
-        //         commands
-        //             .create_application_command(|command| commands::coupon::register(command))
-        //             .create_application_command(|command| commands::forceroles::register(command))
-        //             .create_application_command(|command| commands::gmodstore::register(command))
-        //             .create_application_command(|command| commands::purchases::register(command))
-        //             .create_application_command(|command| commands::roles::register(command))
-        //             .create_application_command(|command| commands::steam::register(command))
-        //             .create_application_command(|command| commands::unlink::register(command))
-        //     })
-        //     .await;
-
         let commands = Command::set_global_application_commands(&ctx.http, |commands| {
             commands
                 // .create_application_command(|command| commands::coupon::register(command))
@@ -152,6 +133,13 @@ impl EventHandler for Handler {
             }
         }
     }
+
+    async fn guild_member_addition(&self, ctx: Context, new_member: Member) {
+        if let Err(e) = events::member::member_create(self, ctx, new_member).await {
+            error!("An error occured whilst running member create event");
+            trace!("{:#?}", e);
+        }
+    }
 }
 
 async fn build() -> Result<(), DiscordBotBuildError> {
@@ -163,7 +151,7 @@ async fn build() -> Result<(), DiscordBotBuildError> {
     let discord_token = get_env("DISCORD_TOKEN")
         .attach_printable("Failed to read discord token")
         .change_context(DiscordBotBuildError)?;
-    let intents = GatewayIntents::non_privileged();
+    let intents = GatewayIntents::non_privileged() | GatewayIntents::GUILD_MEMBERS;
 
     debug!("Building Discord client");
     let mut client = Client::builder(discord_token, intents)
