@@ -67,7 +67,7 @@ impl EventHandler for Handler {
         debug!("Attempting to push slash commands...");
         let commands = Command::set_global_application_commands(&ctx.http, |commands| {
             commands
-                // .create_application_command(|command| commands::coupon::register(command))
+                .create_application_command(|command| commands::coupon::register(command))
                 .create_application_command(|command| commands::forceroles::register(command))
                 .create_application_command(|command| commands::gmodstore::register(command))
                 .create_application_command(|command| commands::purchases::register(command))
@@ -100,9 +100,9 @@ impl EventHandler for Handler {
             );
 
             if let Err(e) = match command.data.name.as_str() {
-                // "coupon" => commands::coupon::run(self, command, ctx)
-                //     .await
-                //     .change_context(CommandRuntimeError),
+                "coupon" => commands::coupon::run(self, command, ctx)
+                    .await
+                    .change_context(CommandRuntimeError),
                 "force-roles" => commands::forceroles::run(self, command, ctx)
                     .await
                     .change_context(CommandRuntimeError),

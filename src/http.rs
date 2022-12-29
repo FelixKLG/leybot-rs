@@ -387,7 +387,7 @@ impl CouponBuilder {
         }
 
         let now = Utc::now();
-        let expiry = now + Days::new(25);
+        let expiry = now + Days::new(7);
 
         Ok(Self {
             code,
@@ -402,22 +402,35 @@ impl CouponBuilder {
 impl GmodStoreClient {
     pub async fn get_coupons_by_user(
         &self,
-        user: ApiUserObject,
+        user: &User<'_>,
         addon: &str,
     ) -> Result<Option<Vec<GMSCouponObject>>, GMSClientHTTPError> {
+        // Format URL
         let url = format!("{}/products/{}/coupons", self.url, addon);
 
+        let user_id = match &user.gmod_store_id {
+            Some(id) => id,
+            None => {
+                return Err(Report::new(GMSClientHTTPError)
+                    .attach_printable("Failed to get user's GmodStore ID"))
+            }
+        };
+
+        // Send Request
         let response = self
             .client
-            .get(url)
+            .get(url) // Get request
+            .query(&[("filter[boundUserId]", user_id)]) // Filter coupons by user ID
             .send()
             .await
             .into_report()
             .attach_printable("An error occurred while fetching from the API")
             .change_context(GMSClientHTTPError)?;
 
+        // Init empty vec of user coupons
         let mut coupons: Vec<GMSCouponObject> = Vec::new();
 
+        // Deserialize response
         let response = response
             .json::<GMSCouponsResponse>()
             .await
@@ -425,15 +438,7 @@ impl GmodStoreClient {
             .attach_printable("An error occured whilst derializing the API response")
             .change_context(GMSClientHTTPError)?;
 
-        let user_uuid = Some(match user.gmod_store_id {
-            Some(id) => id,
-            None => {
-                return Err(
-                    Report::new(GMSClientHTTPError).attach_printable("User has no GmodStore ID")
-                )
-            }
-        });
-
+        // Validate the coupon is not expired
         for x in response.data {
             let expiry: DateTime<Utc> = DateTime::parse_from_rfc3339(&x.expires_at)
                 .into_report()
@@ -441,7 +446,7 @@ impl GmodStoreClient {
                 .change_context(GMSClientHTTPError)?
                 .into();
 
-            if x.bound_user == user_uuid && expiry > Utc::now() {
+            if expiry > Utc::now() {
                 coupons.push(x);
             }
         }
@@ -457,9 +462,11 @@ impl GmodStoreClient {
         &self,
         addon: &str,
         coupon: CouponBuilder,
-    ) -> Result<GMSCouponCreateResponse, GMSClientHTTPError> {
+    ) -> Result<GMSCouponObject, GMSClientHTTPError> {
+        // Format URL
         let url = format!("{}/products/{}/coupons", self.url, addon);
-
+        
+        // Send Request
         let response = self
             .client
             .post(url)
@@ -477,6 +484,6 @@ impl GmodStoreClient {
             .attach_printable("An error occured whilst derializing the API response")
             .change_context(GMSClientHTTPError)?;
 
-        Ok(return_value)
+        Ok(return_value.data)
     }
 }

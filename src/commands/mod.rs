@@ -1,4 +1,4 @@
-// pub mod coupon;
+pub mod coupon;
 pub mod forceroles;
 pub mod gmodstore;
 pub mod purchases;
