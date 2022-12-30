@@ -465,7 +465,7 @@ impl GmodStoreClient {
     ) -> Result<GMSCouponObject, GMSClientHTTPError> {
         // Format URL
         let url = format!("{}/products/{}/coupons", self.url, addon);
-        
+
         // Send Request
         let response = self
             .client

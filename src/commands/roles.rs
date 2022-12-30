@@ -77,7 +77,7 @@ pub async fn run(
                     .change_context(RolesCommandRuntimeError)?;
             }
 
-            if purchases.screen_grabs {
+            if purchases.workshop_dl {
                 member
                     .add_role(&ctx.http, 884060628128497716)
                     .await
