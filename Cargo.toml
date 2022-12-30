@@ -1,6 +1,6 @@
 [package]
 name = "leybot"
-version = "0.0.1"
+version = "0.1.0"
 repository = "https://github.com/FelixKLG/leybot-rs"
 authors = ["FelixKLG <felix@felixklg.dev>"]
 edition = "2021"
