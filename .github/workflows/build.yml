@@ -1,0 +1,106 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build_linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo 
+        uses: actions/checkout@v3
+
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build
+        run: cargo build --verbose --release
+
+      - name: Strip
+        run: strip target/release/leybot
+
+      - name: Rename
+        run: mv target/release/leybot target/release/leybot-linux64
+
+      - name: Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "target/release/leybot-linux64"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifactErrorsFailBuild: true
+          allowUpdates: true
+
+  # build_macos:
+  #   runs-on: macos-latest
+  #   steps:
+  #     - name: Checkout Repo 
+  #       uses: actions/checkout@v3
+
+  #     - name: Cache
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: |
+  #           ~/.cargo/bin/
+  #           ~/.cargo/registry/index/
+  #           ~/.cargo/registry/cache/
+  #           ~/.cargo/git/db/
+  #           target/
+  #         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+  #     - name: Build
+  #       run: cargo build --verbose --release
+      
+  #     - name: Rename
+  #       run: mv target/release/leybot target/release/leybot-darwin64
+
+  #     - name: Release
+  #       uses: ncipollo/release-action@v1
+  #       with:
+  #         artifacts: "target/release/leybot-darwin64"
+  #         token: ${{ secrets.GITHUB_TOKEN }}
+  #         artifactErrorsFailBuild: true
+  #         allowUpdates: true
+
+  # build_windows:
+  #   runs-on: windows-latest
+  #   steps:
+  #     - name: Checkout Repo 
+  #       uses: actions/checkout@v3
+
+  #     - name: Cache
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: |
+  #           ~/.cargo/bin/
+  #           ~/.cargo/registry/index/
+  #           ~/.cargo/registry/cache/
+  #           ~/.cargo/git/db/
+  #           target/
+  #         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+  #     - name: Build
+  #       run: cargo build --verbose --release
+
+  #     - name: Rename
+  #       run: ren target\release\leybot.exe leybot-win64.exe
+
+  #     - name: Release
+  #       uses: ncipollo/release-action@v1
+  #       with:
+  #         artifacts: "target/release/leybot-win64.exe"
+  #         token: ${{ secrets.GITHUB_TOKEN }} 
+  #         artifactErrorsFailBuild: true
+  #         allowUpdates: true
