@@ -6,7 +6,7 @@ pub struct EnvironmentError;
 
 impl std::fmt::Display for EnvironmentError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.write_str("Environment Error: An error occured while trying to read the environment")
+        fmt.write_str("Environment Error: An error occurred while trying to read the environment")
     }
 }
 

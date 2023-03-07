@@ -13,7 +13,7 @@ pub struct CouponCommandRuntimeError;
 
 impl std::fmt::Display for CouponCommandRuntimeError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.write_str("Bot Error: An error occured whilst running the coupon command")
+        fmt.write_str("Bot Error: An error occurred whilst running the coupon command")
     }
 }
 

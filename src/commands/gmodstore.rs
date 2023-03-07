@@ -15,7 +15,7 @@ pub struct GmodstoreCommandRuntimeError;
 
 impl std::fmt::Display for GmodstoreCommandRuntimeError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.write_str("Bot Error: An error occured whilst running the gmodstore command")
+        fmt.write_str("Bot Error: An error occurred whilst running the gmodstore command")
     }
 }
 
@@ -55,7 +55,7 @@ pub async fn run(
     let interaction_reply = match api_response {
         Some(response) => match response.gmod_store_id {
             Some(gms_id) => format!("https://www.gmodstore.com/users/{}", gms_id),
-            None => "User does not have a regsitered GmodStore account.".to_string(),
+            None => "User does not have a registered GmodStore account.".to_string(),
         },
         None => "User is not linked.".to_string(),
     };

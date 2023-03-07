@@ -20,7 +20,7 @@ pub struct ForceRolesCommandRuntimeError;
 
 impl std::fmt::Display for ForceRolesCommandRuntimeError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.write_str("Bot Error: An error occured whilst running the force-roles command")
+        fmt.write_str("Bot Error: An error occurred whilst running the force-roles command")
     }
 }
 
@@ -140,7 +140,7 @@ pub async fn run(
 
             format!("Successfully added roles to {}", Mention::User(user.id))
         },
-        None => "**You are not linked.** Linking your account at <https://leystryku.support/> is required before you can recieve support roles.".to_string()
+        None => "**You are not linked.** Linking your account at <https://leystryku.support/> is required before you can receive support roles.".to_string()
     };
 
     command

@@ -8,7 +8,7 @@ pub struct HttpClientError;
 
 impl std::fmt::Display for HttpClientError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.write_str("HTTP Error: An error occured while building the HTTP client")
+        fmt.write_str("HTTP Error: An error occurred while building the HTTP client")
     }
 }
 
@@ -19,7 +19,7 @@ pub struct LinkClientHTTPError;
 
 impl std::fmt::Display for LinkClientHTTPError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.write_str("HTTP Error: An error occured in the Link Client")
+        fmt.write_str("HTTP Error: An error occurred in the Link Client")
     }
 }
 
@@ -30,7 +30,7 @@ pub struct GMSClientHTTPError;
 
 impl std::fmt::Display for GMSClientHTTPError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.write_str("HTTP Error: An error occured in the Link Client")
+        fmt.write_str("HTTP Error: An error occurred in the Link Client")
     }
 }
 
@@ -41,7 +41,7 @@ pub struct CouponBuilderError;
 
 impl std::fmt::Display for CouponBuilderError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.write_str("An error occured whilst building the coupon")
+        fmt.write_str("An error occurred whilst building the coupon")
     }
 }
 
@@ -243,7 +243,7 @@ impl LinkClient {
             .json::<ApiUserResponse>()
             .await
             .into_report()
-            .attach_printable("An error occured whilst serializing the API response")
+            .attach_printable("An error occurred whilst serializing the API response")
             .change_context(LinkClientHTTPError)?
             .data;
 
@@ -279,7 +279,7 @@ impl User<'_> {
             .json::<ApiPurchasesResponse>()
             .await
             .into_report()
-            .attach_printable("An error occured whilst serializing the API response")
+            .attach_printable("An error occurred whilst serializing the API response")
             .change_context(LinkClientHTTPError)?
             .data)
     }
@@ -435,14 +435,14 @@ impl GmodStoreClient {
             .json::<GMSCouponsResponse>()
             .await
             .into_report()
-            .attach_printable("An error occured whilst derializing the API response")
+            .attach_printable("An error occurred whilst deserializing the API response")
             .change_context(GMSClientHTTPError)?;
 
         // Validate the coupon is not expired
         for x in response.data {
             let expiry: DateTime<Utc> = DateTime::parse_from_rfc3339(&x.expires_at)
                 .into_report()
-                .attach_printable("An error occured whilst parsing the expiry date")
+                .attach_printable("An error occurred whilst parsing the expiry date")
                 .change_context(GMSClientHTTPError)?
                 .into();
 
@@ -481,7 +481,7 @@ impl GmodStoreClient {
             .json::<GMSCouponCreateResponse>()
             .await
             .into_report()
-            .attach_printable("An error occured whilst derializing the API response")
+            .attach_printable("An error occurred whilst deserializing the API response")
             .change_context(GMSClientHTTPError)?;
 
         Ok(return_value.data)

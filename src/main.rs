@@ -5,16 +5,16 @@ use error_stack::{Context as ErrorContext, IntoReport, Result, ResultExt};
 
 use crate::misc::get_env;
 
-use dotenv::dotenv;
 use async_trait::async_trait;
+use dotenv::dotenv;
 
 pub use serenity::model::application::{
     command::Command,
     interaction::{Interaction, InteractionResponseType},
 };
 use serenity::model::gateway::Ready;
+use serenity::model::prelude::Member;
 use serenity::prelude::*;
-use serenity::{model::prelude::Member};
 
 mod commands;
 mod events;
@@ -26,7 +26,7 @@ struct DiscordBotBuildError;
 
 impl std::fmt::Display for DiscordBotBuildError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.write_str("Bot Error: An error occured while building the bot")
+        fmt.write_str("Bot Error: An error occurred while building the bot")
     }
 }
 
@@ -36,7 +36,7 @@ struct DiscordBotRuntimeError;
 
 impl std::fmt::Display for DiscordBotRuntimeError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.write_str("Bot Error: An error occured while running the bot")
+        fmt.write_str("Bot Error: An error occurred while running the bot")
     }
 }
 
@@ -51,7 +51,7 @@ pub struct CommandRuntimeError;
 
 impl std::fmt::Display for CommandRuntimeError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.write_str("Bot Error: An error occured whilst running the gmodstore command")
+        fmt.write_str("Bot Error: An error occurred whilst running the gmodstore command")
     }
 }
 
@@ -128,7 +128,7 @@ impl EventHandler for Handler {
                     return;
                 }
             } {
-                error!("An error occured whilst running previous command");
+                error!("An error occurred whilst running previous command");
                 trace!("{:#?}", e);
             }
         }
@@ -136,7 +136,7 @@ impl EventHandler for Handler {
 
     async fn guild_member_addition(&self, ctx: Context, new_member: Member) {
         if let Err(e) = events::member::member_create(self, ctx, new_member).await {
-            error!("An error occured whilst running member create event");
+            error!("An error occurred whilst running member create event");
             trace!("{:#?}", e);
         }
     }
