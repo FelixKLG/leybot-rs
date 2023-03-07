@@ -3,13 +3,11 @@ extern crate log;
 
 use error_stack::{Context as ErrorContext, IntoReport, Result, ResultExt};
 
-use crate::misc::get_env;
-
 use async_trait::async_trait;
 use dotenv::dotenv;
 
 pub use serenity::model::application::{
-    command::Command,
+    command::Command as InteractionCommand,
     interaction::{Interaction, InteractionResponseType},
 };
 use serenity::{
@@ -22,6 +20,9 @@ mod commands;
 mod events;
 mod http;
 mod misc;
+
+use crate::misc::get_env;
+use commands::Command;
 
 #[derive(Debug)]
 struct DiscordBotBuildError;
@@ -69,15 +70,29 @@ impl EventHandler for Handler {
         );
 
         debug!("Attempting to push slash commands...");
-        let commands = Command::set_global_application_commands(&ctx.http, |commands| {
+        let commands = InteractionCommand::set_global_application_commands(&ctx.http, |commands| {
             commands
-                .create_application_command(|command| commands::coupon::register(command))
-                .create_application_command(|command| commands::forceroles::register(command))
-                .create_application_command(|command| commands::gmodstore::register(command))
-                .create_application_command(|command| commands::purchases::register(command))
-                .create_application_command(|command| commands::roles::register(command))
-                .create_application_command(|command| commands::steam::register(command))
-                .create_application_command(|command| commands::unlink::register(command))
+                .create_application_command(|command| {
+                    commands::coupon::CouponCommand::register(command)
+                })
+                .create_application_command(|command| {
+                    commands::forceroles::ForceRolesCommand::register(command)
+                })
+                .create_application_command(|command| {
+                    commands::gmodstore::GmodStoreCommand::register(command)
+                })
+                .create_application_command(|command| {
+                    commands::purchases::PurchasesCommand::register(command)
+                })
+                .create_application_command(|command| {
+                    commands::roles::RolesCommand::register(command)
+                })
+                .create_application_command(|command| {
+                    commands::steam::SteamCommand::register(command)
+                })
+                .create_application_command(|command| {
+                    commands::unlink::UnlinkCommand::register(command)
+                })
         })
         .await;
 
@@ -104,25 +119,31 @@ impl EventHandler for Handler {
             );
 
             if let Err(e) = match command.data.name.as_str() {
-                "coupon" => commands::coupon::run(self, command, ctx)
+                "coupon" => commands::coupon::CouponCommand::execute(self, &mut command, ctx)
                     .await
                     .change_context(CommandRuntimeError),
-                "force-roles" => commands::forceroles::run(self, command, ctx)
+                "force-roles" => {
+                    commands::forceroles::ForceRolesCommand::execute(self, &mut command, ctx)
+                        .await
+                        .change_context(CommandRuntimeError)
+                }
+                "gmodstore" => {
+                    commands::gmodstore::GmodStoreCommand::execute(self, &mut command, ctx)
+                        .await
+                        .change_context(CommandRuntimeError)
+                }
+                "purchases" => {
+                    commands::purchases::PurchasesCommand::execute(self, &mut command, ctx)
+                        .await
+                        .change_context(CommandRuntimeError)
+                }
+                "roles" => commands::roles::RolesCommand::execute(self, &mut command, ctx)
                     .await
                     .change_context(CommandRuntimeError),
-                "gmodstore" => commands::gmodstore::run(self, command, ctx)
+                "steam" => commands::steam::SteamCommand::execute(self, &mut command, ctx)
                     .await
                     .change_context(CommandRuntimeError),
-                "purchases" => commands::purchases::run(self, command, ctx)
-                    .await
-                    .change_context(CommandRuntimeError),
-                "roles" => commands::roles::run(self, &mut command, ctx)
-                    .await
-                    .change_context(CommandRuntimeError),
-                "steam" => commands::steam::run(self, command, ctx)
-                    .await
-                    .change_context(CommandRuntimeError),
-                "unlink" => commands::unlink::run(self, command, ctx)
+                "unlink" => commands::unlink::UnlinkCommand::execute(self, &mut command, ctx)
                     .await
                     .change_context(CommandRuntimeError),
                 _ => {
