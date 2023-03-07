@@ -12,9 +12,11 @@ pub use serenity::model::application::{
     command::Command,
     interaction::{Interaction, InteractionResponseType},
 };
-use serenity::model::gateway::Ready;
-use serenity::model::prelude::Member;
-use serenity::prelude::*;
+use serenity::{
+    model::{gateway::Ready, prelude::Member},
+    prelude::{Context, EventHandler, GatewayIntents},
+    Client,
+};
 
 mod commands;
 mod events;
