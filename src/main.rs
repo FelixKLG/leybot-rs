@@ -4,7 +4,9 @@ extern crate log;
 use error_stack::{Context as ErrorContext, IntoReport, Result, ResultExt};
 
 use crate::misc::get_env;
+
 use dotenv::dotenv;
+use async_trait::async_trait;
 
 pub use serenity::model::application::{
     command::Command,
@@ -12,7 +14,7 @@ pub use serenity::model::application::{
 };
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
-use serenity::{async_trait, model::prelude::Member};
+use serenity::{model::prelude::Member};
 
 mod commands;
 mod events;
