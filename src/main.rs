@@ -63,7 +63,7 @@ impl ErrorContext for CommandRuntimeError {}
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
-        debug!("Connection to Discord established!");
+        info!("Connection to Discord established!");
         info!(
             "Connected as: {}#{}",
             ready.user.name, ready.user.discriminator
@@ -151,16 +151,17 @@ impl EventHandler for Handler {
                     return;
                 }
             } {
-                error!("An error occurred whilst running previous command");
-                trace!("{:#?}", e);
+                debug!("An error occurred whilst running previous command");
+                sentry::capture_error(&e.as_error());
+                error!("{:#?}", e);
             }
         }
     }
 
     async fn guild_member_addition(&self, ctx: Context, new_member: Member) {
         if let Err(e) = events::member::member_create(self, ctx, new_member).await {
-            error!("An error occurred whilst running member create event");
-            trace!("{:#?}", e);
+            debug!("An error occurred whilst running member create event");
+            error!("{:#?}", e);
         }
     }
 }
@@ -196,6 +197,15 @@ async fn build() -> Result<(), DiscordBotBuildError> {
 
 #[tokio::main]
 async fn main() -> Result<(), DiscordBotRuntimeError> {
+    #[cfg(not(debug_assertions))]
+    let _guard = sentry::init((
+        env!("SENTRY_DSN"),
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            ..Default::default()
+        },
+    ));
+
     dotenv()
         .into_report()
         .attach_printable("Failed to load .env file")
