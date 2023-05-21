@@ -75,7 +75,7 @@ impl super::Command for CouponCommand {
             return Ok(());
         }
 
-        let coupon_code = cuid::cuid2();
+        let coupon_code = cuid2::cuid();
 
         let coupon_builder = CouponBuilder::new(coupon_code, 25, 1, user.gmod_store_id.clone())
             .change_context(CommandRuntimeError)?;
