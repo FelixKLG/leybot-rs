@@ -1,5 +1,6 @@
+use super::CommandRuntimeError;
 use async_trait::async_trait;
-use error_stack::{Context as ErrorContext, IntoReport, Report, Result, ResultExt};
+use error_stack::{IntoReport, Report, Result, ResultExt};
 use serenity::{
     builder::CreateApplicationCommand,
     client::Context,
@@ -16,63 +17,52 @@ use serenity::{
     },
 };
 
-#[derive(Debug)]
-pub struct UnlinkCommandRuntimeError;
-
-impl std::fmt::Display for UnlinkCommandRuntimeError {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.write_str("Bot Error: An error occurred whilst running the unlink command")
-    }
-}
-
-impl ErrorContext for UnlinkCommandRuntimeError {}
-
 pub struct UnlinkCommand;
 
 #[async_trait]
-impl super::Command<UnlinkCommandRuntimeError> for UnlinkCommand {
+impl super::Command for UnlinkCommand {
     async fn execute(
         handler: &crate::Handler,
         command: &mut ApplicationCommandInteraction,
         ctx: Context,
-    ) -> Result<(), UnlinkCommandRuntimeError> {
+    ) -> Result<(), CommandRuntimeError> {
         let target = match command.data.options.get(0) {
             Some(target) => match target.resolved.as_ref() {
                 Some(target) => target,
                 None => {
-                    return Err(Report::new(UnlinkCommandRuntimeError)
+                    return Err(Report::new(CommandRuntimeError)
                         .attach_printable("Failed to parse command target as a user"));
                 }
             },
             None => {
-                return Err(Report::new(UnlinkCommandRuntimeError)
+                return Err(Report::new(CommandRuntimeError)
                     .attach_printable("Failed to get command target"));
             }
         };
-    
+
         let CommandDataOptionValue::User(user, _member) = target else {
-            return Err(Report::new(UnlinkCommandRuntimeError)
+            return Err(Report::new(CommandRuntimeError)
                 .attach_printable("Failed to fetch and validate user from command target"));
         };
-    
+
         let api_response = handler
             .http
             .link_client
             .get_user_by_discord(user.id.0)
             .await
-            .change_context(UnlinkCommandRuntimeError)?;
-    
+            .change_context(CommandRuntimeError)?;
+
         let interaction_reply = match api_response {
             Some(api_user) => {
                 api_user
                     .delete()
                     .await
-                    .change_context(UnlinkCommandRuntimeError)?;
+                    .change_context(CommandRuntimeError)?;
                 format!("Unlinked {}", Mention::User(user.id))
             }
             None => format!("{} is not linked.", Mention::User(user.id)),
         };
-    
+
         command
             .create_interaction_response(&ctx.http, |response| {
                 response
@@ -84,11 +74,11 @@ impl super::Command<UnlinkCommandRuntimeError> for UnlinkCommand {
             .await
             .into_report()
             .attach_printable("Failed to send interaction response")
-            .change_context(UnlinkCommandRuntimeError)?;
-    
+            .change_context(CommandRuntimeError)?;
+
         Ok(())
     }
-    
+
     fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
         command
             .name("unlink")

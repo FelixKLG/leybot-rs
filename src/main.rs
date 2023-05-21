@@ -49,17 +49,6 @@ pub struct Handler {
     pub http: crate::http::HttpClient,
 }
 
-#[derive(Debug)]
-pub struct CommandRuntimeError;
-
-impl std::fmt::Display for CommandRuntimeError {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.write_str("Bot Error: An error occurred whilst running the gmodstore command")
-    }
-}
-
-impl ErrorContext for CommandRuntimeError {}
-
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
@@ -119,33 +108,19 @@ impl EventHandler for Handler {
             );
 
             if let Err(e) = match command.data.name.as_str() {
-                "coupon" => commands::coupon::CouponCommand::execute(self, &mut command, ctx)
-                    .await
-                    .change_context(CommandRuntimeError),
+                "coupon" => commands::coupon::CouponCommand::execute(self, &mut command, ctx).await,
                 "force-roles" => {
-                    commands::forceroles::ForceRolesCommand::execute(self, &mut command, ctx)
-                        .await
-                        .change_context(CommandRuntimeError)
+                    commands::forceroles::ForceRolesCommand::execute(self, &mut command, ctx).await
                 }
                 "gmodstore" => {
-                    commands::gmodstore::GmodStoreCommand::execute(self, &mut command, ctx)
-                        .await
-                        .change_context(CommandRuntimeError)
+                    commands::gmodstore::GmodStoreCommand::execute(self, &mut command, ctx).await
                 }
                 "purchases" => {
-                    commands::purchases::PurchasesCommand::execute(self, &mut command, ctx)
-                        .await
-                        .change_context(CommandRuntimeError)
+                    commands::purchases::PurchasesCommand::execute(self, &mut command, ctx).await
                 }
-                "roles" => commands::roles::RolesCommand::execute(self, &mut command, ctx)
-                    .await
-                    .change_context(CommandRuntimeError),
-                "steam" => commands::steam::SteamCommand::execute(self, &mut command, ctx)
-                    .await
-                    .change_context(CommandRuntimeError),
-                "unlink" => commands::unlink::UnlinkCommand::execute(self, &mut command, ctx)
-                    .await
-                    .change_context(CommandRuntimeError),
+                "roles" => commands::roles::RolesCommand::execute(self, &mut command, ctx).await,
+                "steam" => commands::steam::SteamCommand::execute(self, &mut command, ctx).await,
+                "unlink" => commands::unlink::UnlinkCommand::execute(self, &mut command, ctx).await,
                 _ => {
                     error!("Unknown command: {}", command.data.name.as_str());
                     return;

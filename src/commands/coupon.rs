@@ -1,6 +1,7 @@
+use super::CommandRuntimeError;
 use crate::http::CouponBuilder;
 use async_trait::async_trait;
-use error_stack::{Context as ErrorContext, IntoReport, Result, ResultExt};
+use error_stack::{IntoReport, Result, ResultExt};
 use serenity::{
     builder::CreateApplicationCommand,
     client::Context,
@@ -9,35 +10,24 @@ use serenity::{
     },
 };
 
-#[derive(Debug)]
-pub struct CouponCommandRuntimeError;
-
-impl std::fmt::Display for CouponCommandRuntimeError {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt.write_str("Bot Error: An error occurred whilst running the coupon command")
-    }
-}
-
-impl ErrorContext for CouponCommandRuntimeError {}
-
 pub struct CouponCommand;
 
 #[async_trait]
-impl super::Command<CouponCommandRuntimeError> for CouponCommand {
+impl super::Command for CouponCommand {
     async fn execute(
         handler: &crate::Handler,
         command: &mut ApplicationCommandInteraction,
         ctx: Context,
-    ) -> Result<(), CouponCommandRuntimeError> {
+    ) -> Result<(), CommandRuntimeError> {
         let discord_user = &command.user;
-    
+
         let api_user = handler
             .http
             .link_client
             .get_user_by_discord(discord_user.id.0)
             .await
-            .change_context(CouponCommandRuntimeError)?;
-    
+            .change_context(CommandRuntimeError)?;
+
         let user = match api_user {
             Some(user) => user,
             None => {
@@ -45,12 +35,12 @@ impl super::Command<CouponCommandRuntimeError> for CouponCommand {
                 return Ok(());
             }
         };
-    
+
         let purchases = user
             .get_purchases()
             .await
-            .change_context(CouponCommandRuntimeError)?;
-    
+            .change_context(CommandRuntimeError)?;
+
         if purchases.lsac {
             respond(command, &ctx, "You already own LSAC!").await?;
             return Ok(());
@@ -63,14 +53,14 @@ impl super::Command<CouponCommandRuntimeError> for CouponCommand {
             .await?;
             return Ok(());
         }
-    
+
         let coupons = handler
             .http
             .gmod_store_client
             .get_coupons_by_user(&user, "6c5e862b-3dcf-4769-aa6b-8a001937c56b")
             .await
-            .change_context(CouponCommandRuntimeError)?;
-    
+            .change_context(CommandRuntimeError)?;
+
         if let Some(coupons) = coupons {
             respond(
                 command,
@@ -84,21 +74,19 @@ impl super::Command<CouponCommandRuntimeError> for CouponCommand {
             .await?;
             return Ok(());
         }
-    
-        let coupon_code = cuid::cuid()
-            .into_report()
-            .change_context(CouponCommandRuntimeError)?;
-    
+
+        let coupon_code = cuid::cuid2();
+
         let coupon_builder = CouponBuilder::new(coupon_code, 25, 1, user.gmod_store_id.clone())
-            .change_context(CouponCommandRuntimeError)?;
-    
+            .change_context(CommandRuntimeError)?;
+
         let coupon = handler
             .http
             .gmod_store_client
             .create_coupon("6c5e862b-3dcf-4769-aa6b-8a001937c56b", coupon_builder)
             .await
-            .change_context(CouponCommandRuntimeError)?;
-    
+            .change_context(CommandRuntimeError)?;
+
         respond(
             command,
             &ctx,
@@ -107,7 +95,7 @@ impl super::Command<CouponCommandRuntimeError> for CouponCommand {
         .await?;
         Ok(())
     }
-    
+
     fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
         command
             .name("coupon")
@@ -120,7 +108,7 @@ async fn respond(
     command: &mut ApplicationCommandInteraction,
     ctx: &Context,
     reply: &str,
-) -> Result<(), CouponCommandRuntimeError> {
+) -> Result<(), CommandRuntimeError> {
     command
         .create_interaction_response(&ctx.http, |response| {
             response
@@ -130,6 +118,6 @@ async fn respond(
         .await
         .into_report()
         .attach_printable("Failed to send interaction response")
-        .change_context(CouponCommandRuntimeError)?;
+        .change_context(CommandRuntimeError)?;
     Ok(())
 }
