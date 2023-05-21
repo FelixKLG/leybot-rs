@@ -158,8 +158,8 @@ async fn main() -> Result<(), DiscordBotRuntimeError> {
         sentry::ClientOptions {
             release: sentry::release_name!(),
             environment: Some("production".into()),
-            sample_rate: 0,
-            traces_sample_rate: 0,
+            sample_rate: 0.0,
+            traces_sample_rate: 0.0,
             ..Default::default()
         },
     ));
