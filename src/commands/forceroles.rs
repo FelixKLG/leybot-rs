@@ -56,8 +56,8 @@ impl super::Command<ForceRolesCommandRuntimeError> for ForceRolesCommand {
         };
     
         let mut member = match member {
-            Some(member) => {
-                let guild_id = match member.guild_id {
+            Some(_) => {
+                let guild_id = match command.guild_id {
                     Some(guild_id) => guild_id,
                     None => {
                         return Err(Report::new(ForceRolesCommandRuntimeError)
