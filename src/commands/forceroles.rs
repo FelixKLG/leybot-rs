@@ -21,7 +21,7 @@ pub struct ForceRolesCommand;
 
 #[async_trait]
 impl super::Command for ForceRolesCommand {
-    async fn execute(   
+    async fn execute(
         handler: &crate::Handler,
         command: &mut ApplicationCommandInteraction,
         ctx: Context,
