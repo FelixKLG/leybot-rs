@@ -6,13 +6,21 @@ use serenity::{
     prelude::Context,
 };
 
-pub mod coupon;
-pub mod forceroles;
-pub mod gmodstore;
-pub mod purchases;
-pub mod roles;
-pub mod steam;
-pub mod unlink;
+mod coupon;
+mod forceroles;
+mod gmodstore;
+mod purchases;
+mod roles;
+mod steam;
+mod unlink;
+
+pub use coupon::CouponCommand;
+pub use forceroles::ForceRolesCommand;
+pub use gmodstore::GmodStoreCommand;
+pub use purchases::PurchasesCommand;
+pub use roles::RolesCommand;
+pub use steam::SteamCommand;
+pub use unlink::UnlinkCommand;
 
 #[async_trait]
 pub trait Command {
@@ -35,10 +43,3 @@ impl std::fmt::Display for CommandRuntimeError {
 }
 
 impl ErrorContext for CommandRuntimeError {}
-
-// pub async fn run(
-//     handler: &crate::Handler,
-//     command: ApplicationCommandInteraction,
-//     ctx: Context,
-// ) -> Result<(), GmodstoreCommandRuntimeError> {}
-// }

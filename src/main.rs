@@ -61,27 +61,13 @@ impl EventHandler for Handler {
         debug!("Attempting to push slash commands...");
         let commands = InteractionCommand::set_global_application_commands(&ctx.http, |commands| {
             commands
-                .create_application_command(|command| {
-                    commands::coupon::CouponCommand::register(command)
-                })
-                .create_application_command(|command| {
-                    commands::forceroles::ForceRolesCommand::register(command)
-                })
-                .create_application_command(|command| {
-                    commands::gmodstore::GmodStoreCommand::register(command)
-                })
-                .create_application_command(|command| {
-                    commands::purchases::PurchasesCommand::register(command)
-                })
-                .create_application_command(|command| {
-                    commands::roles::RolesCommand::register(command)
-                })
-                .create_application_command(|command| {
-                    commands::steam::SteamCommand::register(command)
-                })
-                .create_application_command(|command| {
-                    commands::unlink::UnlinkCommand::register(command)
-                })
+                .create_application_command(|command| commands::CouponCommand::register(command))
+                .create_application_command(|command| commands::ForceRolesCommand::register(command))
+                .create_application_command(|command| commands::GmodStoreCommand::register(command))
+                .create_application_command(|command| commands::PurchasesCommand::register(command))
+                .create_application_command(|command| commands::RolesCommand::register(command))
+                .create_application_command(|command| commands::SteamCommand::register(command))
+                .create_application_command(|command| commands::UnlinkCommand::register(command))
         })
         .await;
 
@@ -108,19 +94,13 @@ impl EventHandler for Handler {
             );
 
             if let Err(e) = match command.data.name.as_str() {
-                "coupon" => commands::coupon::CouponCommand::execute(self, &mut command, ctx).await,
-                "force-roles" => {
-                    commands::forceroles::ForceRolesCommand::execute(self, &mut command, ctx).await
-                }
-                "gmodstore" => {
-                    commands::gmodstore::GmodStoreCommand::execute(self, &mut command, ctx).await
-                }
-                "purchases" => {
-                    commands::purchases::PurchasesCommand::execute(self, &mut command, ctx).await
-                }
-                "roles" => commands::roles::RolesCommand::execute(self, &mut command, ctx).await,
-                "steam" => commands::steam::SteamCommand::execute(self, &mut command, ctx).await,
-                "unlink" => commands::unlink::UnlinkCommand::execute(self, &mut command, ctx).await,
+                "coupon" => commands::CouponCommand::execute(self, &mut command, ctx).await,
+                "force-roles" => commands::ForceRolesCommand::execute(self, &mut command, ctx).await,
+                "gmodstore" => commands::GmodStoreCommand::execute(self, &mut command, ctx).await,
+                "purchases" => commands::PurchasesCommand::execute(self, &mut command, ctx).await,
+                "roles" => commands::RolesCommand::execute(self, &mut command, ctx).await,
+                "steam" => commands::SteamCommand::execute(self, &mut command, ctx).await,
+                "unlink" => commands::UnlinkCommand::execute(self, &mut command, ctx).await,
                 _ => {
                     error!("Unknown command: {}", command.data.name.as_str());
                     return;
